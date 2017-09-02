@@ -85,13 +85,13 @@ public class Elevator : MonoBehaviour {
     // Use FixedUpdate for consistent intervals between calls 
     /// If whiles are used, then all the decrementing would occur in one frame
     void Update () {
+        UpdateFloorLights();
         if (floor != targetFloor && targetFloor != -1) {
             isMoving = true;
             MoveToNextFloor();            
         }
         if (!isMoving) {
             if (floor == GetNextFloor()) {
-                ResetButton(floor);
                 // Stop/Open doors
             }
             UpdateTargetFloor();
@@ -193,8 +193,32 @@ public class Elevator : MonoBehaviour {
         return -1;
     }
 
+    // Turns on button lights for floors in any of the destinations
+    // Turns off button lights when floor = GetNextFloor() is reached
+    private void UpdateFloorLights() {
+        TurnNewFloorLightsOn();
+        if (floor == GetNextFloor()) {
+            TurnButtonLightOff(floor);
+        }
+    }
+
+    private void TurnNewFloorLightsOn() {
+        for (int i = 0; i < upDestinations.Count; i++) {
+            int val = (int)upDestinations.GetByIndex(i);
+            if (!buttons[val].hasLightOn) {
+                buttons[val].TurnLightOn();
+            }
+        }
+        for (int i = 0; i < downDestinations.Count; i++) {
+            int val = (int)downDestinations.GetByIndex(i);
+            if (!buttons[val].hasLightOn) {
+                buttons[val].TurnLightOn();
+            }
+        }
+    }
+
     // Turns off light for the button for floor i
-    private void ResetButton(int i) {
-        buttons[i].ResetButton();
+    private void TurnButtonLightOff(int i) {
+        buttons[i].TurnLightOff();
     }
 }
