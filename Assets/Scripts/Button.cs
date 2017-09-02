@@ -3,37 +3,37 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Button : MonoBehaviour {
+    public int floor;
+    public bool wasPressed;
+
     public Sprite buttonOff;
     public Sprite buttonPressed;
     public Sprite buttonOn;
 
+    private GameObject button;
     private SpriteRenderer sr;
 
-	// Use this for initialization
+
 	void Awake () {
-        sr = GetComponent<SpriteRenderer>();	
-	}
-	
-	// Update is called once per frame
-	void Update () {
-        
-        
+        button = this.gameObject;
+        sr = button.GetComponent<SpriteRenderer>();
+        sr.sprite = buttonOff;
+        wasPressed = false;
 	}
 
     private void OnMouseDown() {
-        if (sr.sprite == buttonOff) {
-            sr.sprite = buttonPressed;
-        } else if (sr.sprite == buttonOn) {
-            sr.sprite = buttonPressed;
-        }
+        sr.sprite = buttonPressed;
+        wasPressed = true;
+        Elevator.instance.HandleFloorRequest(floor);
     }
 
     private void OnMouseUp() {
-        if (sr.sprite == buttonPressed) {
-            sr.sprite = buttonOn;
-        }
+        sr.sprite = buttonOn;
     }
 
+    public void ResetButton() {
+        sr.sprite = buttonOff;
+    }
 
 
 }
