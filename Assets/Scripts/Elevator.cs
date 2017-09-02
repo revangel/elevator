@@ -17,6 +17,15 @@ using UnityEngine;
 // floor to service to 8. Adding the floor to destinations automatically handles
 // where to place floor 8.
 
+/// (2)
+// This array has the child Buttons in the order that they appear in the scene hierarchy
+// So if the hierarchy was:
+// - x
+// -- foo
+// -- bar
+// -- gamma
+// then buttons := [foo, bar, gamma]
+
 /// Definitions
 // A CALL to a floor is when an up/down button is pressed on the 
 // outside of the elevator (i.e. someone wants to get on the elevator).
@@ -24,49 +33,168 @@ using UnityEngine;
 // inside of the elevator (i.e. someone wants to go to floor f)
 // SERVICING a floor means responding to either a CALL or REQUEST
 public class Elevator : MonoBehaviour {
-    
+    public static Elevator instance = null;
+
     public int floors = 10;
-    public float delayPerFloor = 1f;
+    public float distanceBetweenFloors = 2;
      
     private enum Directions {down, up, both, none};
     private List<Directions> calls;
-    private SortedList upDestinations; // See Notes (1)
+    private SortedList upDestinations; /// See Notes (1)
     private SortedList downDestinations;
 
-    private bool isDoorOpen;
-    private int floor;
     private Directions direction;
+    private float distanceTravelledBetweenFloors;
+    private int floor;
+    private bool isDoorOpen;
+    private bool isMoving;
+    private int targetFloor;
+    
+    private Button[] buttons;
 
     // Use this for initialization
     void Awake () {
-        floor = 0;
+        if (instance == null) {
+            instance = this;
+        } else if (instance == this) {
+            Destroy(gameObject);
+        }
+
         calls = new List<Directions>();
         upDestinations = new SortedList();
         downDestinations = new SortedList();
+
+        direction = Directions.none;
+        distanceTravelledBetweenFloors = 0;
+        floor = 0;
         isDoorOpen = false;
-	}
-	
-	// Update is called once per frame
-	void Update () {
-
+        isMoving = false;
 	}
 
-    // Adds a floor request to queue
-    private void addFloorRequest(int f) {
+    private void Start() {
+        buttons = GetComponentsInChildren<Button>(); /// See Notes(2)
+        //Testing
+        HandleFloorRequest(3);
+        HandleFloorRequest(2);
+        for (int i = 0; i < 2; i++) {
+            Debug.Log((int)upDestinations.GetByIndex(i));
+        }
+        UpdateDirection();
+    }
+
+    // Use FixedUpdate for consistent intervals between calls 
+    /// If whiles are used, then all the decrementing would occur in one frame
+    void Update () {
+        if (floor != targetFloor && targetFloor != -1) {
+            isMoving = true;
+            MoveToNextFloor();            
+        }
+        if (!isMoving) {
+            if (floor == GetNextFloor()) {
+                ResetButton(floor);
+                // Stop/Open doors
+            }
+            UpdateTargetFloor();
+            UpdateDirection();
+        }
+    }
+    
+    public void HandleFloorRequest(int f) {
         if (f > 0 && f < floors) {
-            if (direction == Directions.up && !upDestinations.Contains(f)) { // Don't add duplicate floors
-                if (floor < f) { 
-                    upDestinations.Add(f, f);
-                } else if (!downDestinations.Contains(f)) { // Request is in the opposite direction
-                    downDestinations.Add(f, f);
-                }
-            } else if (direction == Directions.down) {
-                if (floor > f) {
-                    downDestinations.Add(f, f);
-                } else if (!upDestinations.Contains(f)) { // Request is in the opposite direction
-                    upDestinations.Add(f, f);
-                }
+            if (direction != Directions.none) {
+                AddFloorRequest(f);
+            } else if (direction == Directions.none) {
+                StartTravel(f);
             }
         }
+        UpdateTargetFloor();
+    }
+
+    private void MoveToNextFloor() {        
+        if (distanceTravelledBetweenFloors >= distanceBetweenFloors) {
+            distanceTravelledBetweenFloors = 0;
+            isMoving = false;
+            floor++;
+        } else {
+            distanceTravelledBetweenFloors += Time.deltaTime;
+        }        
+    }
+
+    // Begins a new destinations queue
+    private void StartTravel(int f) {
+        if (f > floor) {
+            upDestinations.Add(f, f);
+        } else if (f < floor) {
+            downDestinations.Add(f, f);
+        }
+    }
+
+    // Adds a floor request to existing destinations if not already in
+    private void AddFloorRequest(int f) {
+        // When going up, add any reqests for floors > current floor and any calls for upward travel
+        // to the upward destinations. 
+        // For any requests for floors < current floor and calls for downward travel, 
+        // add to opposite destinations
+        // Vice versa for downward travel
+        if (direction == Directions.up && !upDestinations.Contains(f)) { 
+            if (f > floor) { 
+                upDestinations.Add(f, f);
+            } else if (!downDestinations.Contains(f)) { // Request is in the opposite direction
+                downDestinations.Add(f, f);
+            }
+        } else if (direction == Directions.down && !downDestinations.Contains(f)) {
+            if (f < floor) {
+                downDestinations.Add(f, f);
+            } else if (!upDestinations.Contains(f)) { // Request is in the opposite direction
+                upDestinations.Add(f, f);
+            }
+        } 
+    }
+
+    // Updates the target floor, which is the furthest floor in the direction of travel
+    // i.e. max(upDestinations), min(downDestinations)
+    // If there is no target floor (i.e. destinations are empty), the target floor == -1
+    private void UpdateTargetFloor() {
+        if (floor == targetFloor) {
+            targetFloor = -1;
+        } else {
+            if (upDestinations.Count > 0) {
+                targetFloor = (int)upDestinations.GetByIndex(upDestinations.Count - 1);
+            } else if (downDestinations.Count > 0) {
+                targetFloor = (int)downDestinations.GetByIndex(0);
+            }
+        }
+    }
+
+    // Updates direction based on targetFloor
+    private void UpdateDirection() {
+        if (targetFloor < 0) {
+            direction = Directions.none;
+        } else {
+            if (targetFloor < floor) {
+                direction = Directions.down;
+            } else if (targetFloor > floor) {
+                direction = Directions.up;
+            }
+        }
+    }
+
+    // Returns the next floor to stop to along the direction of travel
+    // Returns -1 if there are no floors in any of the queues
+    /// (a) Since downDestinations is a SortedList, floors are in ascending order
+    /// but since the elevator is going down, should stop by floors in descending order
+    private int GetNextFloor() {
+        if (direction == Directions.up) {
+            return (int)upDestinations.GetByIndex(0);
+        }
+        else if (direction == Directions.down) {
+            return (int)downDestinations.GetByIndex(downDestinations.Count-1); /// See (a)
+        }
+        return -1;
+    }
+
+    // Turns off light for the button for floor i
+    private void ResetButton(int i) {
+        buttons[i].ResetButton();
     }
 }
