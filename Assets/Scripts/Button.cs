@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Button : MonoBehaviour {
     public int floor;
-    public bool wasPressed;
+    public bool hasLightOn;
 
     public Sprite buttonOff;
     public Sprite buttonPressed;
@@ -18,12 +18,12 @@ public class Button : MonoBehaviour {
         button = this.gameObject;
         sr = button.GetComponent<SpriteRenderer>();
         sr.sprite = buttonOff;
-        wasPressed = false;
+        hasLightOn = false;
 	}
 
     private void OnMouseDown() {
         sr.sprite = buttonPressed;
-        wasPressed = true;
+        hasLightOn = true;
         Elevator.instance.HandleFloorRequest(floor);
     }
 
@@ -31,9 +31,13 @@ public class Button : MonoBehaviour {
         sr.sprite = buttonOn;
     }
 
-    public void ResetButton() {
-        sr.sprite = buttonOff;
+    public void TurnLightOn() {
+        sr.sprite = buttonOn;
+        hasLightOn = true;
     }
 
-
+    public void TurnLightOff() {
+        sr.sprite = buttonOff;
+        hasLightOn = false;
+    }
 }
