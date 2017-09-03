@@ -21,6 +21,14 @@ public class Button : MonoBehaviour {
         hasLightOn = false;
 	}
 
+    private void LateUpdate() {
+        if (hasLightOn) {
+            sr.sprite = buttonOn;
+        } else {
+            sr.sprite = buttonOff;
+        }
+    }
+
     private void OnMouseDown() {
         sr.sprite = buttonPressed;
         hasLightOn = true;
@@ -32,12 +40,10 @@ public class Button : MonoBehaviour {
     }
 
     public void TurnLightOn() {
-        sr.sprite = buttonOn;
         hasLightOn = true;
     }
 
     public void TurnLightOff() {
-        sr.sprite = buttonOff;
         hasLightOn = false;
     }
 }
