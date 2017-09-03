@@ -77,15 +77,6 @@ public class Elevator : MonoBehaviour {
     private void Start() {
         buttons = GetComponentsInChildren<Button>(); /// See Notes(2)
 
-
-        //Testing
-        /*
-        floor = 1;
-        HandleFloorRequest(3);
-        UpdateDirection();
-        HandleFloorRequest(0);
-        */
-
         UpdateFloorDisplay();
         UpdateDirection();
         UpdateDirectionDisplay();
@@ -102,6 +93,7 @@ public class Elevator : MonoBehaviour {
             if (floor == GetNextFloor()) {
                 // Stop/Open doors
                 TurnButtonLightOff(floor);
+                RemoveFloorFromDestinations();
             }
 
         }
@@ -114,6 +106,9 @@ public class Elevator : MonoBehaviour {
         UpdateDirectionDisplay();
     }
 
+    //////////////////
+    // Elevator Logic
+   
     public void HandleFloorRequest(int f) {
         if (f >= 0 && f < floors) {
             if (direction != Directions.none) {
@@ -211,6 +206,17 @@ public class Elevator : MonoBehaviour {
         }
         return -1;
     }
+
+    private void RemoveFloorFromDestinations() {
+        if (direction == Directions.up) {
+            upDestinations.Remove(floor);
+        } else if (direction == Directions.down) {
+            downDestinations.Remove(floor);
+        }
+    }
+
+    ////////////////////
+    // Display Functions
 
     private void UpdateDirectionDisplay() {
         if (direction == Directions.up) {
