@@ -76,14 +76,14 @@ public class Elevator : MonoBehaviour {
 
     private void Start() {
         buttons = GetComponentsInChildren<Button>(); /// See Notes(2)
-        /*
+
+
         //Testing
+        floor = 1;
         HandleFloorRequest(3);
-        HandleFloorRequest(2);
-        for (int i = 0; i < 2; i++) {
-            Debug.Log((int)upDestinations.GetByIndex(i));
-        }
-        */
+        HandleFloorRequest(0);
+        
+
         UpdateFloorDisplay();
         UpdateDirection();
         UpdateDirectionDisplay();
@@ -109,7 +109,7 @@ public class Elevator : MonoBehaviour {
     }
     
     public void HandleFloorRequest(int f) {
-        if (f > 0 && f < floors) {
+        if (f >= 0 && f < floors) {
             if (direction != Directions.none) {
                 AddFloorRequest(f);
             } else if (direction == Directions.none) {
