@@ -50,7 +50,7 @@ public class Elevator : MonoBehaviour {
     private float distanceTravelledBetweenFloors;
     private int floor;
     private bool isDoorOpen;
-    private bool isMoving;
+    private bool atAFloor;
     private int targetFloor;
     
     private Button[] buttons;
@@ -71,7 +71,7 @@ public class Elevator : MonoBehaviour {
         distanceTravelledBetweenFloors = 0;
         floor = 0;
         isDoorOpen = false;
-        isMoving = false;
+        atAFloor = true;
 	}
 
     private void Start() {
@@ -79,10 +79,12 @@ public class Elevator : MonoBehaviour {
 
 
         //Testing
+        /*
         floor = 1;
         HandleFloorRequest(3);
+        UpdateDirection();
         HandleFloorRequest(0);
-        
+        */
 
         UpdateFloorDisplay();
         UpdateDirection();
@@ -92,22 +94,26 @@ public class Elevator : MonoBehaviour {
     // Use FixedUpdate for consistent intervals between calls 
     /// If whiles are used, then all the decrementing would occur in one frame
     void Update () {
-        UpdateFloorLights();
         if (floor != targetFloor && targetFloor != -1) {
-            isMoving = true;
+            atAFloor = false;
             MoveToNextFloor();            
         }
-        if (!isMoving) {
+        if (atAFloor) {
             if (floor == GetNextFloor()) {
                 // Stop/Open doors
+                TurnButtonLightOff(floor);
             }
-            UpdateFloorDisplay();
-            UpdateTargetFloor();
-            UpdateDirection();
-            UpdateDirectionDisplay();
+
         }
     }
-    
+
+    private void LateUpdate() {
+        UpdateFloorDisplay();
+        UpdateTargetFloor();
+        UpdateDirection();
+        UpdateDirectionDisplay();
+    }
+
     public void HandleFloorRequest(int f) {
         if (f >= 0 && f < floors) {
             if (direction != Directions.none) {
@@ -122,8 +128,12 @@ public class Elevator : MonoBehaviour {
     private void MoveToNextFloor() {        
         if (distanceTravelledBetweenFloors >= distanceBetweenFloors) {
             distanceTravelledBetweenFloors = 0;
-            isMoving = false;
-            floor++;
+            atAFloor = true;
+            if(direction == Directions.up) {
+                floor++;
+            } else if (direction == Directions.down) {
+                floor--;
+            }
         } else {
             distanceTravelledBetweenFloors += Time.deltaTime;
         }        
@@ -221,30 +231,6 @@ public class Elevator : MonoBehaviour {
             floorDisplay.text = "G";
         } else {
             floorDisplay.text = floor.ToString();
-        }
-    }
-
-    // Turns on button lights for floors in any of the destinations
-    // Turns off button lights when floor = GetNextFloor() is reached
-    private void UpdateFloorLights() {
-        TurnNewFloorLightsOn();
-        if (floor == GetNextFloor()) {
-            TurnButtonLightOff(floor);
-        }
-    }
-
-    private void TurnNewFloorLightsOn() {
-        for (int i = 0; i < upDestinations.Count; i++) {
-            int val = (int)upDestinations.GetByIndex(i);
-            if (!buttons[val].hasLightOn) {
-                buttons[val].TurnLightOn();
-            }
-        }
-        for (int i = 0; i < downDestinations.Count; i++) {
-            int val = (int)downDestinations.GetByIndex(i);
-            if (!buttons[val].hasLightOn) {
-                buttons[val].TurnLightOn();
-            }
         }
     }
 
