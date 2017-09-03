@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// Notes
 /// (1)
@@ -34,7 +35,9 @@ using UnityEngine;
 // SERVICING a floor means responding to either a CALL or REQUEST
 public class Elevator : MonoBehaviour {
     public static Elevator instance = null;
-
+    public Text floorDisplay;
+    public Image upArrow;
+    public Image downArrow;
     public int floors = 10;
     public float distanceBetweenFloors = 2;
      
@@ -73,13 +76,17 @@ public class Elevator : MonoBehaviour {
 
     private void Start() {
         buttons = GetComponentsInChildren<Button>(); /// See Notes(2)
+        /*
         //Testing
         HandleFloorRequest(3);
         HandleFloorRequest(2);
         for (int i = 0; i < 2; i++) {
             Debug.Log((int)upDestinations.GetByIndex(i));
         }
+        */
+        UpdateFloorDisplay();
         UpdateDirection();
+        UpdateDirectionDisplay();
     }
 
     // Use FixedUpdate for consistent intervals between calls 
@@ -94,8 +101,10 @@ public class Elevator : MonoBehaviour {
             if (floor == GetNextFloor()) {
                 // Stop/Open doors
             }
+            UpdateFloorDisplay();
             UpdateTargetFloor();
             UpdateDirection();
+            UpdateDirectionDisplay();
         }
     }
     
@@ -191,6 +200,28 @@ public class Elevator : MonoBehaviour {
             return (int)downDestinations.GetByIndex(downDestinations.Count-1); /// See (a)
         }
         return -1;
+    }
+
+    private void UpdateDirectionDisplay() {
+        if (direction == Directions.up) {
+            upArrow.enabled = true;
+            downArrow.enabled = false;
+        } else if (direction == Directions.down) {
+            downArrow.enabled = true;
+            upArrow.enabled = false;
+        } else if (direction == Directions.none) {
+            upArrow.enabled = false;
+            downArrow.enabled = false;
+        }
+    }
+
+    // Changes the floor display text to the current floor
+    private void UpdateFloorDisplay() {
+        if (floor == 0) {
+            floorDisplay.text = "G";
+        } else {
+            floorDisplay.text = floor.ToString();
+        }
     }
 
     // Turns on button lights for floors in any of the destinations
