@@ -171,7 +171,7 @@ public class Elevator : MonoBehaviour {
     private void UpdateTargetFloor() {
         if (floor == targetFloor) {
             targetFloor = -1;
-        } else {
+        } else if (targetFloor == -1) { // Prevent changing target floor if there's one assigned
             if (upDestinations.Count > 0) {
                 targetFloor = (int)upDestinations.GetByIndex(upDestinations.Count - 1);
             } else if (downDestinations.Count > 0) {
