@@ -150,14 +150,14 @@ public class Elevator : MonoBehaviour {
         // For any requests for floors < current floor and calls for downward travel, 
         // add to opposite destinations
         // Vice versa for downward travel
-        if (direction == Directions.up && !upDestinations.Contains(f)) { 
-            if (f > floor) { 
+        if (direction == Directions.up) { 
+            if (f > floor && !upDestinations.Contains(f)) { 
                 upDestinations.Add(f, f);
             } else if (!downDestinations.Contains(f)) { // Request is in the opposite direction
                 downDestinations.Add(f, f);
             }
-        } else if (direction == Directions.down && !downDestinations.Contains(f)) {
-            if (f < floor) {
+        } else if (direction == Directions.down) {
+            if (f < floor && !downDestinations.Contains(f)) {
                 downDestinations.Add(f, f);
             } else if (!upDestinations.Contains(f)) { // Request is in the opposite direction
                 upDestinations.Add(f, f);
