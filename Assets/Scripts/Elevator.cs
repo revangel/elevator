@@ -36,11 +36,12 @@ using UnityEngine.UI;
 public class Elevator : MonoBehaviour {
     public static Elevator instance = null;
 
-    public float distanceBetweenFloors = 2;
     public Text floorDisplay;
-    public float floorWaitTime = 5f;
     public Image upArrow;
     public Image downArrow;
+
+    public float distanceBetweenFloors = 10f;
+    public float floorWaitTime = 5f;
     public int floors = 10;
      
     private enum Directions {down, up, both, none};
@@ -48,13 +49,15 @@ public class Elevator : MonoBehaviour {
     private SortedList upDestinations; /// See Notes (1)
     private SortedList downDestinations;
 
-    private bool atAFloor;
+    
     private Directions direction;
-    private float distanceTravelledBetweenFloors;
-    private bool doorIsOpen;
+    private float distanceTravelledBetweenFloors;    
     private int floor;
     private int targetFloor;
-    
+
+    private bool inBetweenFloors;
+    private bool doorIsOpen;
+
     private Button[] buttons;
 
     private AudioSource chime;
@@ -70,14 +73,15 @@ public class Elevator : MonoBehaviour {
         calls = new List<Directions>();
         upDestinations = new SortedList();
         downDestinations = new SortedList();
-
-        atAFloor = true;
+        
         direction = Directions.none;
-        distanceTravelledBetweenFloors = 0;
-        doorIsOpen = false;
+        distanceTravelledBetweenFloors = 0;        
         floor = 0;
         targetFloor = -1;
-    
+
+        doorIsOpen = false;
+        inBetweenFloors = false;
+
         chime = gameObject.GetComponent<AudioSource>();
 	}
 
@@ -92,32 +96,52 @@ public class Elevator : MonoBehaviour {
     // Use FixedUpdate for consistent intervals between calls 
     /// If whiles are used, then all the decrementing would occur in one frame
     void Update () {
-        if (floor != targetFloor && targetFloor != -1) {
-            atAFloor = false;
-            MoveToNextFloor();            
+        if(floor != targetFloor && targetFloor != -1) {
+            if (!inBetweenFloors && !doorIsOpen) { // Prevent repeated calls to MoveToNextFloor() while moving between floors
+                inBetweenFloors = true;
+                UpdateDirection();
+                StartCoroutine(MoveToNextFloor());
+            }            
         }
-        if (atAFloor) {
-            if (floor == GetNextFloor()) {
-                UpdateFloorDisplay();
-                StopAtFloor();
-                TurnButtonLightOff(floor);
-                RemoveFloorFromDestinations();
-            }
-
-        }
-    }
-
-    private void LateUpdate() {
-        if (!doorIsOpen) {
-            UpdateTargetFloor();
-            UpdateDirection();
-            UpdateDirectionDisplay();
-        } 
     }
 
     //////////////////
+    // Coroutines
+    IEnumerator MoveToNextFloor() {
+        Debug.Log("Moving to next floor from floor " + floor);
+        yield return new WaitForSeconds(distanceBetweenFloors);
+        ArriveAtFloor();
+    }
+
+    /// (a) Everything called after StartCoroutine() will execute immediately after StartCoroutine
+    /// So in order to actually execute statements after waiting, those statements have to be
+    /// called within the coroutine itself
+    private void ArriveAtFloor() {
+        inBetweenFloors = false;        
+        if (direction == Directions.up) {
+            floor++;
+        } else if (direction == Directions.down) {
+            floor--;
+        }
+        Debug.Log("Now at floor " + floor);
+        if (floor == GetNextFloor()) {
+            doorIsOpen = true;
+            StartCoroutine(WaitAtFloor());
+        }        
+    }
+
+    IEnumerator WaitAtFloor() {
+        Debug.Log("Waiting at floor " + floor);
+        yield return new WaitForSeconds(floorWaitTime);
+        doorIsOpen = false;
+        Debug.Log("Finished waiting at floor " + floor);
+        Debug.Log("At target floor?: " + (floor == targetFloor));
+    }
+
+
+    //////////////////
     // Elevator Logic
-   
+
     public void HandleFloorRequest(int f) {
         if (f >= 0 && f < floors) {
             if (direction != Directions.none) {
@@ -127,6 +151,7 @@ public class Elevator : MonoBehaviour {
             }
         }
         UpdateTargetFloor();
+        Debug.Log("New target floor: " + targetFloor);
     }
 
     // Begins a new destinations queue
@@ -166,12 +191,16 @@ public class Elevator : MonoBehaviour {
     private void UpdateTargetFloor() {
         if (floor == targetFloor) {
             targetFloor = -1;
-        } else if (targetFloor == -1) { // Prevent changing target floor if there's one assigned
+        } else if (targetFloor == -1) { // Target floor initialized
             if (upDestinations.Count > 0) {
                 targetFloor = (int)upDestinations.GetByIndex(upDestinations.Count - 1);
             } else if (downDestinations.Count > 0) {
                 targetFloor = (int)downDestinations.GetByIndex(0);
             }
+        } else if (direction == Directions.up && upDestinations.Count > 0) { // A floor higher than current up target 
+            targetFloor = (int)upDestinations.GetByIndex(upDestinations.Count - 1);
+        } else if (direction == Directions.down && downDestinations.Count > 0) { // A floor lower than current down target
+            targetFloor = (int)downDestinations.GetByIndex(0);
         }
     }
 
@@ -202,49 +231,13 @@ public class Elevator : MonoBehaviour {
         return -1;
     }
 
-    private void RemoveFloorFromDestinations() {
+    private void RemoveCurrentFloorFromDestinations() {
         if (direction == Directions.up) {
             upDestinations.Remove(floor);
         } else if (direction == Directions.down) {
             downDestinations.Remove(floor);
         }
-    }
-
-    ////////////////////////
-    // Simulation Functions
-    private void MoveToNextFloor() {
-        if (distanceTravelledBetweenFloors >= distanceBetweenFloors) {
-            distanceTravelledBetweenFloors = 0;
-            atAFloor = true;
-            if (direction == Directions.up) {
-                floor++;
-            }
-            else if (direction == Directions.down) {
-                floor--;
-            }
-        }
-        else {
-            distanceTravelledBetweenFloors += Time.deltaTime;
-        }
-    }
-
-    ///  (a) Everything called after StartCoroutine() will execute immediately after StartCoroutine
-    /// So in order to actually execute statements after waiting, those statements have to be
-    /// called within the coroutine itself
-    private void StopAtFloor() {
-        chime.Play();        
-        doorIsOpen = true;
-        // TODO: Animate door opening
-        StartCoroutine(WaitAtFloor()); /// See (a)
-    }
-
-    IEnumerator WaitAtFloor() {
-        Debug.Log("Waiting");
-        yield return new WaitForSeconds(floorWaitTime);
-        chime.Play();
-        doorIsOpen = false;
-        Debug.Log("Finished");
-    }
+    } 
 
     ////////////////////
     // Display Functions
