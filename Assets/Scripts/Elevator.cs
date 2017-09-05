@@ -41,6 +41,7 @@ public class Elevator : MonoBehaviour {
     public Image downArrow;
 
     public float distanceBetweenFloors = 10f;
+    public float doorSpeed = 2.5f;
     public float floorWaitTime = 5f;
     public int floors = 10;
      
@@ -109,32 +110,28 @@ public class Elevator : MonoBehaviour {
     // Coroutines
     IEnumerator MoveToNextFloor() {
         yield return new WaitForSeconds(distanceBetweenFloors);
-        ArriveAtFloor();
+        TransitionBetweenFloors();
+        if (floor == GetNextFloor()) {
+            RemoveCurrentFloorFromDestinations();
+            TurnButtonLightOff(floor);
+            doorIsOpen = true;
+            yield return new WaitForSeconds(doorSpeed);
+            chime.Play();
+            yield return new WaitForSeconds(floorWaitTime);
+            chime.Play();
+            yield return new WaitForSeconds(doorSpeed);
+            doorIsOpen = false;
+        }        
     }
 
-    /// (a) Everything called after StartCoroutine() will execute immediately after StartCoroutine
-    /// So in order to actually execute statements after waiting, those statements have to be
-    /// called within the coroutine itself
-    private void ArriveAtFloor() {
-        int nextFloor = GetNextFloor();
+    private void TransitionBetweenFloors() {
         inBetweenFloors = false;        
         if (direction == Directions.up) {
             floor++;
         } else if (direction == Directions.down) {
             floor--;
         }
-        UpdateFloorDisplay();  
-        if (floor == GetNextFloor()) {            
-            RemoveCurrentFloorFromDestinations();
-            TurnButtonLightOff(floor);
-            StartCoroutine(WaitAtFloor());
-        }        
-    }
-
-    IEnumerator WaitAtFloor() {
-        doorIsOpen = true;
-        yield return new WaitForSeconds(floorWaitTime);
-        doorIsOpen = false;
+        UpdateFloorDisplay();               
     }
 
     //////////////////
