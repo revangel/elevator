@@ -51,7 +51,6 @@ public class Elevator : MonoBehaviour {
 
     
     private Directions direction;
-    private float distanceTravelledBetweenFloors;    
     private int floor;
     private int targetFloor;
 
@@ -74,8 +73,7 @@ public class Elevator : MonoBehaviour {
         upDestinations = new SortedList();
         downDestinations = new SortedList();
         
-        direction = Directions.none;
-        distanceTravelledBetweenFloors = 0;        
+        direction = Directions.none;  
         floor = 0;
         targetFloor = -1;
 
@@ -98,17 +96,18 @@ public class Elevator : MonoBehaviour {
     void Update () {
         if(floor != targetFloor && targetFloor != -1) {
             if (!inBetweenFloors && !doorIsOpen) { // Prevent repeated calls to MoveToNextFloor() while moving between floors
-                inBetweenFloors = true;
-                UpdateDirection();
+                inBetweenFloors = true;                
                 StartCoroutine(MoveToNextFloor());
             }            
-        }
+        }        
+        UpdateTargetFloor();
+        UpdateDirection();
+        UpdateDirectionDisplay();
     }
 
     //////////////////
     // Coroutines
     IEnumerator MoveToNextFloor() {
-        Debug.Log("Moving to next floor from floor " + floor);
         yield return new WaitForSeconds(distanceBetweenFloors);
         ArriveAtFloor();
     }
@@ -117,27 +116,26 @@ public class Elevator : MonoBehaviour {
     /// So in order to actually execute statements after waiting, those statements have to be
     /// called within the coroutine itself
     private void ArriveAtFloor() {
+        int nextFloor = GetNextFloor();
         inBetweenFloors = false;        
         if (direction == Directions.up) {
             floor++;
         } else if (direction == Directions.down) {
             floor--;
         }
-        Debug.Log("Now at floor " + floor);
-        if (floor == GetNextFloor()) {
-            doorIsOpen = true;
+        UpdateFloorDisplay();  
+        if (floor == GetNextFloor()) {            
+            RemoveCurrentFloorFromDestinations();
+            TurnButtonLightOff(floor);
             StartCoroutine(WaitAtFloor());
         }        
     }
 
     IEnumerator WaitAtFloor() {
-        Debug.Log("Waiting at floor " + floor);
+        doorIsOpen = true;
         yield return new WaitForSeconds(floorWaitTime);
         doorIsOpen = false;
-        Debug.Log("Finished waiting at floor " + floor);
-        Debug.Log("At target floor?: " + (floor == targetFloor));
     }
-
 
     //////////////////
     // Elevator Logic
