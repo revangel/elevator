@@ -44,7 +44,11 @@ public class Elevator : MonoBehaviour {
     public float doorSpeed = 2.5f;
     public float floorWaitTime = 5f;
     public int floors = 10;
-     
+
+    private Button[] buttons;
+    private Door door;
+    private AudioSource chime;
+
     private enum Directions {down, up, both, none};
     private List<Directions> calls;
     private SortedList upDestinations; /// See Notes (1)
@@ -56,11 +60,7 @@ public class Elevator : MonoBehaviour {
     private int targetFloor;
 
     private bool inBetweenFloors;
-    private bool doorIsOpen;
-
-    private Button[] buttons;
-
-    private AudioSource chime;
+    private bool doorIsOpen;  
 
     // Use this for initialization
     void Awake () {
@@ -69,6 +69,8 @@ public class Elevator : MonoBehaviour {
         } else if (instance == this) {
             Destroy(gameObject);
         }
+
+        chime = gameObject.GetComponent<AudioSource>();
 
         calls = new List<Directions>();
         upDestinations = new SortedList();
@@ -79,14 +81,12 @@ public class Elevator : MonoBehaviour {
         targetFloor = -1;
 
         doorIsOpen = false;
-        inBetweenFloors = false;
-
-        chime = gameObject.GetComponent<AudioSource>();
+        inBetweenFloors = false;        
 	}
 
     private void Start() {
         buttons = GetComponentsInChildren<Button>(); /// See Notes(2)
-   
+        door = GetComponentInChildren<Door>();
         UpdateFloorDisplay();
         UpdateDirection();
         UpdateDirectionDisplay();
@@ -111,14 +111,14 @@ public class Elevator : MonoBehaviour {
     IEnumerator MoveToNextFloor() {
         yield return new WaitForSeconds(distanceBetweenFloors);
         TransitionBetweenFloors();
-        if (floor == GetNextFloor()) {
+        if (floor == GetNextFloor()) { // Arrived at destination floor
             RemoveCurrentFloorFromDestinations();
             TurnButtonLightOff(floor);
             doorIsOpen = true;
             yield return new WaitForSeconds(doorSpeed);
-            chime.Play();
+            chime.Play(); // Opening chime
             yield return new WaitForSeconds(floorWaitTime);
-            chime.Play();
+            chime.Play(); // Closing chime
             yield return new WaitForSeconds(doorSpeed);
             doorIsOpen = false;
         }        
@@ -137,6 +137,7 @@ public class Elevator : MonoBehaviour {
     //////////////////
     // Elevator Logic
 
+    // The main entry point for when an elevator floor button is pressed
     public void HandleFloorRequest(int f) {
         if (f >= 0 && f < floors) {
             if (direction != Directions.none) {
