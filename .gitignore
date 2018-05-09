@@ -18,6 +18,8 @@ obj/
 *.user
 *.unityproj
 *.booproj
+.vs/
+*.meta
 
 # ============ #
 # OS generated #
@@ -29,3 +31,12 @@ obj/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# =============== #
+# Assets          #
+# =============== #
+Assets/Fonts/
+Assets/Prefabs/
+Assets/Sounds/
+Assets/Sprites/
+ProjectSettings/
