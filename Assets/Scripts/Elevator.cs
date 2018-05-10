@@ -117,7 +117,7 @@ public class Elevator : MonoBehaviour {
             doorIsOpen = true;
             yield return new WaitForSeconds(doorSpeed);
             chime.Play(); // Opening chime
-            yield return new WaitForSeconds(floorWaitTime);push
+            yield return new WaitForSeconds(floorWaitTime);
             chime.Play(); // Closing chime
             yield return new WaitForSeconds(doorSpeed);
             doorIsOpen = false;
